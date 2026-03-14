@@ -1,5 +1,4 @@
-# libvirt-provision
-
+# libvirt-k8s-bootstrap
 Declarative VM provisioning on bare-metal KVM/libvirt with cloud-init. Define your infrastructure in a single YAML file — networks, VMs, cloud-init configuration — and run one command to bring it up.
 
 ## Architecture
