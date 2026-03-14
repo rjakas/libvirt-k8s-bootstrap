@@ -1,4 +1,12 @@
 # libvirt-k8s-bootstrap
+
+![License](https://img.shields.io/github/license/rjakas/libvirt-k8s-bootstrap)
+![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Last Commit](https://img.shields.io/github/last-commit/rjakas/libvirt-k8s-bootstrap)
+![Issues](https://img.shields.io/github/issues/rjakas/libvirt-k8s-bootstrap)
+![Stars](https://img.shields.io/github/stars/rjakas/libvirt-k8s-bootstrap)
+![Code Size](https://img.shields.io/github/languages/code-size/rjakas/libvirt-k8s-bootstrap)
+
 Declarative VM provisioning on bare-metal KVM/libvirt with cloud-init. Define your infrastructure in a single YAML file — networks, VMs, cloud-init configuration — and run one command to bring it up.
 
 ## Architecture
