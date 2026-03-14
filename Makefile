@@ -31,10 +31,18 @@ validate: ## Validate config syntax and references
 validate-full: ## Validate including base image existence
 	python3 validate.py --check-images $(CONFIG)
 
-dry-run: ## Preview provisioning without changes
+dry-run: ## Preview provisioning without changes (requires: source secrets.env first)
+	@if [ -z "$$VM_SSH_PUBKEY" ]; then \
+		echo "ERROR: VM_SSH_PUBKEY not set. Run: source secrets.env"; \
+		exit 1; \
+	fi
 	python3 provision.py --dry-run $(CONFIG)
 
-provision: validate ## Provision all networks and VMs
+provision: validate ## Provision all networks and VMs (requires: source secrets.env first)
+	@if [ -z "$$VM_SSH_PUBKEY" ]; then \
+		echo "ERROR: VM_SSH_PUBKEY not set. Run: source secrets.env"; \
+		exit 1; \
+	fi
 	python3 provision.py $(CONFIG)
 
 destroy: ## Destroy all VMs and networks
