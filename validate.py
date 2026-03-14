@@ -96,6 +96,19 @@ def validate_vm(vm, idx, net_names, nets_by_name):
         if val is not None and (not isinstance(val, int) or val <= 0):
             err(f"vm '{name}': '{field}' must be a positive integer, got {val}")
 
+    # Validate cloud_init structure
+    ci = vm.get("cloud_init", {})
+    if ci:
+        if not isinstance(ci, dict):
+            err(f"vm '{name}': 'cloud_init' must be a mapping")
+        else:
+            packages = ci.get("packages")
+            if packages is not None and not isinstance(packages, list):
+                err(f"vm '{name}': 'cloud_init.packages' must be a list")
+            runcmd = ci.get("runcmd")
+            if runcmd is not None and not isinstance(runcmd, list):
+                err(f"vm '{name}': 'cloud_init.runcmd' must be a list")
+
     vm_nets = vm.get("networks", [])
     for nidx, vnet in enumerate(vm_nets):
         net_name = vnet.get("name")
@@ -151,6 +164,18 @@ def main():
     defaults = cfg.get("defaults", {})
     networks = cfg.get("networks", [])
     vms = cfg.get("vms", [])
+
+    # Validate defaults structure
+    if defaults:
+        if not isinstance(defaults, dict):
+            err("'defaults' must be a mapping")
+        else:
+            packages = defaults.get("packages")
+            if packages is not None and not isinstance(packages, list):
+                err("'defaults.packages' must be a list")
+            runcmd = defaults.get("runcmd")
+            if runcmd is not None and not isinstance(runcmd, list):
+                err("'defaults.runcmd' must be a list")
 
     # Check for duplicate network names
     net_names_list = [n.get("name") for n in networks if n.get("name")]
