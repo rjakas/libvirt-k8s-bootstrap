@@ -53,8 +53,12 @@ def destroy_vm(name, disk_pool, dry_run=False):
     log.info("Destroying VM '%s'", name)
     # Force off if running
     run(["virsh", "destroy", name], dry_run=dry_run)
-    # Remove with storage
-    run(["virsh", "undefine", name, "--remove-all-storage", "--nvram"], dry_run=dry_run)
+    # Remove with storage (try with --nvram first, fall back without if it fails)
+    result = run(["virsh", "undefine", name, "--remove-all-storage", "--nvram"],
+                 check=False, dry_run=dry_run)
+    if result and result.returncode != 0:
+        # Retry without --nvram for BIOS-based VMs
+        run(["virsh", "undefine", name, "--remove-all-storage"], dry_run=dry_run)
 
     # Clean up cidata directory
     ci_dir = Path(CIDATA_DIR) / name
@@ -89,8 +93,19 @@ def main():
         format=LOG_FMT,
     )
 
-    with open(args.config) as f:
-        cfg = yaml.safe_load(f)
+    try:
+        with open(args.config) as f:
+            cfg = yaml.safe_load(f)
+    except FileNotFoundError:
+        log.error("Config file not found: %s", args.config)
+        sys.exit(1)
+    except yaml.YAMLError as e:
+        log.error("YAML parse error: %s", e)
+        sys.exit(1)
+
+    if not isinstance(cfg, dict):
+        log.error("Config root must be a YAML mapping")
+        sys.exit(1)
 
     defaults = cfg.get("defaults", {})
     disk_pool = defaults.get("disk_pool", "/var/lib/libvirt/images")
