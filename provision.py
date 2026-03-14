@@ -5,6 +5,9 @@ libvirt-provision: Declarative VM provisioning with cloud-init on bare-metal KVM
 Reads an infrastructure YAML definition and creates libvirt networks and VMs
 with cloud-init NoCloud datasource configuration.
 
+Requirements:
+  Python 3.9+ (uses modern type hints like list[str])
+
 Secrets are injected via environment variables:
   VM_SSH_PUBKEY        - (required) SSH public key for the default user
   VM_DEFAULT_PASSWORD  - (optional) password hash for console access fallback
@@ -85,14 +88,31 @@ def require_env(name: str, required: bool = True) -> str | None:
     return val
 
 
+def validate_ssh_pubkey(key: str) -> bool:
+    """Basic validation that a string looks like an SSH public key."""
+    if not key or not key.strip():
+        return False
+    parts = key.strip().split()
+    # SSH keys typically have at least 2 parts: key-type and key-data
+    # Common types: ssh-rsa, ssh-ed25519, ecdsa-sha2-nistp256, etc.
+    valid_types = ("ssh-rsa", "ssh-dss", "ssh-ed25519", "ecdsa-sha2-nistp256",
+                   "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp521", "sk-ssh-ed25519@openssh.com",
+                   "sk-ecdsa-sha2-nistp256@openssh.com")
+    return len(parts) >= 2 and parts[0] in valid_types
+
+
 def load_config(path: str) -> dict:
     """Load and validate the infrastructure YAML."""
     p = Path(path)
     if not p.is_file():
         log.error("Config file not found: %s", path)
         sys.exit(1)
-    with open(p) as f:
-        cfg = yaml.safe_load(f)
+    try:
+        with open(p) as f:
+            cfg = yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        log.error("YAML parse error in %s: %s", path, e)
+        sys.exit(1)
     # Basic structural validation
     if not isinstance(cfg, dict):
         log.error("Config root must be a YAML mapping")
@@ -171,7 +191,7 @@ def build_network_xml(net: dict) -> str:
         dhcp_xml = textwrap.dedent(f"""\
             <dhcp>
                 <range start="{dhcp['start']}" end="{dhcp['end']}"/>
-              </dhcp>""")
+            </dhcp>""")
 
     # DNS block
     dns_cfg = net.get("dns", {})
@@ -571,6 +591,10 @@ def main() -> None:
     # Preflight
     require_commands(["virsh", "virt-install", "qemu-img"])
     ssh_pubkey = require_env("VM_SSH_PUBKEY")
+    if not validate_ssh_pubkey(ssh_pubkey):
+        log.error("VM_SSH_PUBKEY does not appear to be a valid SSH public key.")
+        log.error("Expected format: 'ssh-ed25519 AAAA... user@host' or similar")
+        sys.exit(1)
     password_hash = require_env("VM_DEFAULT_PASSWORD", required=False)
 
     cfg = load_config(args.config)
