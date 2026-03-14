@@ -39,8 +39,19 @@ def main():
         print(f"Usage: {sys.argv[0]} <infra.yaml>")
         sys.exit(1)
 
-    with open(sys.argv[1]) as f:
-        cfg = yaml.safe_load(f)
+    try:
+        with open(sys.argv[1]) as f:
+            cfg = yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"ERROR: Config file not found: {sys.argv[1]}", file=sys.stderr)
+        sys.exit(1)
+    except yaml.YAMLError as e:
+        print(f"ERROR: YAML parse error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not isinstance(cfg, dict):
+        print("ERROR: Config root must be a YAML mapping", file=sys.stderr)
+        sys.exit(1)
 
     networks = cfg.get("networks", [])
     vms = cfg.get("vms", [])
